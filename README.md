@@ -1,16 +1,26 @@
-# todo_list_app
+# To-Do List Application
 
-A new Flutter project.
+A simple to-do list project made with Node-RED, Docker, and Flutter.
 
-## Getting Started
+## Requirements
+- Flutter
+- Docker
 
-This project is a starting point for a Flutter application.
+## Running the Project
+### 1. Clone the repository
+```bash
+git clone https://github.com/[YOUR_GITHUB_USERNAME]/flutter-nodered-todo.git
+cd flutter-nodered-todo
+```
 
-A few resources to get you started if this is your first Flutter project:
+### 2. Start the back-end ([Node-RED](https://nodered.org/))
+Node-RED is deployed using [Docker](https://www.docker.com/). This terminal window should remain open while running the project.
+```bash
+docker compose up
+```
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+### 3. Start the front-end [Flutter Web App](https://flutter.dev/)
+Run the flutter application in a new terminal window. This window should remain open while running the project.
+```bash
+flutter run -d chrome
+```
