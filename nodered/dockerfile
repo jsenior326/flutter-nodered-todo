@@ -1,6 +1,22 @@
 # Use official node-red image
 FROM nodered/node-red:latest
 
+# Copy local package.json to Docker WORKDIR so npm builds added node modules
+WORKDIR /data
+COPY package.json /data
+RUN npm install --unsafe-perm --no-update-notifier --no-fund --only=production
+
+# Set Docker WORKDIR back to node-red directory
+WORKDIR /usr/src/node-red
+
+# Copy node-red project files into place
+COPY settings.js /data/settings.js
+COPY flows.json /data/flows.json
+
+# Copy initial todo.json file (can pre-populate data into this file before
+# building the container if desired)
+COPY todo.json /data/todo.json
+
 # Expose default node-red port
 EXPOSE 1880
 

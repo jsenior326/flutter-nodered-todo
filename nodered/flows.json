@@ -1,0 +1,436 @@
+[
+    {
+        "id": "f6f2187d.f17ca8",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "ef26914d7e84e522",
+        "type": "http in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "url": "/todo",
+        "method": "get",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 160,
+        "y": 220,
+        "wires": [
+            [
+                "bb92254c99387b56"
+            ]
+        ]
+    },
+    {
+        "id": "3a975a6c9b34400d",
+        "type": "http in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "url": "/todo",
+        "method": "post",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 420,
+        "wires": [
+            [
+                "9d65eb962da2bc5e"
+            ]
+        ]
+    },
+    {
+        "id": "2ad3169fd6eb29a2",
+        "type": "http in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "url": "/todo/:id",
+        "method": "put",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 150,
+        "y": 640,
+        "wires": [
+            [
+                "4573d59dc828b4a4"
+            ]
+        ]
+    },
+    {
+        "id": "3d1810b23025d777",
+        "type": "http in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "url": "/todo/:id",
+        "method": "delete",
+        "upload": false,
+        "swaggerDoc": "",
+        "x": 140,
+        "y": 860,
+        "wires": [
+            [
+                "2273a59af2b894b4"
+            ]
+        ]
+    },
+    {
+        "id": "bb92254c99387b56",
+        "type": "file in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 360,
+        "y": 220,
+        "wires": [
+            [
+                "ee5ab95d65787c3f"
+            ]
+        ]
+    },
+    {
+        "id": "ee5ab95d65787c3f",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 220,
+        "wires": [
+            [
+                "21241445594db579"
+            ]
+        ]
+    },
+    {
+        "id": "21241445594db579",
+        "type": "http response",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 710,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "9d65eb962da2bc5e",
+        "type": "file in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 360,
+        "y": 420,
+        "wires": [
+            [
+                "f32aa15f15a20cb2"
+            ]
+        ]
+    },
+    {
+        "id": "6ca0b06f31166451",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "AppendTask",
+        "func": "// Get the existing list of todo items\nvar todoList = msg.payload;\n\n// Get the new todo item from request\nvar newItem = msg.req.body;\n\n// Add the new item to the list\ntodoList.push(newItem);\n\n// Send updated list to payload so we can write\n// the new list to file\nmsg.paylod = todoList;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 420,
+        "wires": [
+            [
+                "92e6db93a093d6dc"
+            ]
+        ]
+    },
+    {
+        "id": "f32aa15f15a20cb2",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 420,
+        "wires": [
+            [
+                "6ca0b06f31166451"
+            ]
+        ]
+    },
+    {
+        "id": "40816e95343e9b9f",
+        "type": "http response",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1250,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "84eb55a5d6fe727e",
+        "type": "file",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 1080,
+        "y": 420,
+        "wires": [
+            [
+                "40816e95343e9b9f"
+            ]
+        ]
+    },
+    {
+        "id": "4573d59dc828b4a4",
+        "type": "file in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 360,
+        "y": 640,
+        "wires": [
+            [
+                "305c286613ec97de"
+            ]
+        ]
+    },
+    {
+        "id": "305c286613ec97de",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 640,
+        "wires": [
+            [
+                "66bcbe279c3400a1"
+            ]
+        ]
+    },
+    {
+        "id": "66bcbe279c3400a1",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "UpdateTask",
+        "func": "var todoList = msg.payload; // Current todo list\nvar id = parseInt(msg.req.params.id); // id of task to update\nvar updatedTask = msg.req.body; // The updated task from request\n\n// Find index of the item\nvar itemIndex = todoList.findIndex(todo => todo.id === id);\n\nif (itemIndex !== -1) {\n    // If we found a valid index,\n    // Update item\n    todoList[itemIndex] = Object.assign(todoList[itemIndex], updatedTask);\n\n    // Set payload to updated list so we can write to file\n    msg.paylod = todoList;\n    return msg;\n} else {\n    // If item not found, returns 404 error\n    msg.statusCode = 404;\n    msg.payload = { Error: \"To-Do item not found\" };\n    return [null, msg]\n}\n\nreturn msg;",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 640,
+        "wires": [
+            [
+                "4704e0e4074db17d"
+            ],
+            [
+                "797aa0320a782a07"
+            ]
+        ]
+    },
+    {
+        "id": "92e6db93a093d6dc",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 910,
+        "y": 420,
+        "wires": [
+            [
+                "84eb55a5d6fe727e"
+            ]
+        ]
+    },
+    {
+        "id": "a19af4e907b0caa0",
+        "type": "file",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 1080,
+        "y": 620,
+        "wires": [
+            [
+                "797aa0320a782a07"
+            ]
+        ]
+    },
+    {
+        "id": "4704e0e4074db17d",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 910,
+        "y": 620,
+        "wires": [
+            [
+                "a19af4e907b0caa0"
+            ]
+        ]
+    },
+    {
+        "id": "797aa0320a782a07",
+        "type": "http response",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1250,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "2273a59af2b894b4",
+        "type": "file in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "utf8",
+        "allProps": false,
+        "x": 360,
+        "y": 860,
+        "wires": [
+            [
+                "295cd16c04549bd6"
+            ]
+        ]
+    },
+    {
+        "id": "295cd16c04549bd6",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 550,
+        "y": 860,
+        "wires": [
+            [
+                "55e684bb44d6a8d4"
+            ]
+        ]
+    },
+    {
+        "id": "55e684bb44d6a8d4",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "DeleteTask",
+        "func": "var todoList = msg.payload // Current task list\nvar id = parseInt(msg.req.params.id); // Id of task to delete\n\n// Find the index of the item to delete\nvar itemIndex = todoList.findIndex(todo => todo.id === id);\n\nif (itemIndex !== -1){\n    // Remove item from the todo list\n    todoList.splice(itemIndex, 1);\n\n    // Set payload to updated list to store in file\n    msg.payload = todoList;\n    return msg;\n} else {\n    // If valid index not found, return 404 error\n    msg.statusCode = 404;\n    msg.payload = { Error: \"To-Do item not found\" };\n    return [null, msg];\n}",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 730,
+        "y": 860,
+        "wires": [
+            [
+                "85c432e6ad0f96fa"
+            ],
+            [
+                "067a7fdbd7ec10f0"
+            ]
+        ]
+    },
+    {
+        "id": "85c432e6ad0f96fa",
+        "type": "json",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "property": "payload",
+        "action": "str",
+        "pretty": true,
+        "x": 910,
+        "y": 840,
+        "wires": [
+            [
+                "deaf51d3e7ccf759"
+            ]
+        ]
+    },
+    {
+        "id": "deaf51d3e7ccf759",
+        "type": "file",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "appendNewline": false,
+        "createDir": false,
+        "overwriteFile": "true",
+        "encoding": "none",
+        "x": 1080,
+        "y": 840,
+        "wires": [
+            [
+                "067a7fdbd7ec10f0"
+            ]
+        ]
+    },
+    {
+        "id": "067a7fdbd7ec10f0",
+        "type": "http response",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "statusCode": "",
+        "headers": {},
+        "x": 1250,
+        "y": 860,
+        "wires": []
+    }
+]
