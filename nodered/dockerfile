@@ -17,6 +17,10 @@ COPY flows.json /data/flows.json
 # building the container if desired)
 COPY todo.json /data/todo.json
 
+# Update read write permissions
+USER root
+RUN chmod 666 /data/todo.json
+
 # Expose default node-red port
 EXPOSE 1880
 
