@@ -3,8 +3,8 @@
 A simple to-do list project made with Node-RED, Docker, and Flutter.
 
 ## Requirements
-- Flutter
-- Docker
+- [Flutter](https://flutter.dev/)
+- [Docker](https://docs.docker.com/engine/install/)
 
 ## Running the Project
 ### 1. Clone the repository
@@ -20,7 +20,7 @@ docker compose up
 ```
 
 ### 3. Start the front-end [Flutter Web App](https://flutter.dev/)
-Run the flutter application in a new terminal window. This window should remain open while running the project.
+Run the Flutter application in a new terminal window from inside the project directory. This window should remain open while running the project.
 ```bash
 flutter run -d chrome
 ```
