@@ -7,430 +7,60 @@
         "info": ""
     },
     {
-        "id": "ef26914d7e84e522",
+        "id": "b2e342a13df6afd3",
         "type": "http in",
         "z": "f6f2187d.f17ca8",
         "name": "",
-        "url": "/todo",
-        "method": "get",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 160,
-        "y": 220,
-        "wires": [
-            [
-                "bb92254c99387b56"
-            ]
-        ]
-    },
-    {
-        "id": "3a975a6c9b34400d",
-        "type": "http in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "url": "/todo",
+        "url": "/graphql",
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 150,
-        "y": 420,
+        "x": 240,
+        "y": 180,
         "wires": [
             [
-                "9d65eb962da2bc5e"
+                "fea3dbe6acbb0815"
             ]
         ]
     },
     {
-        "id": "2ad3169fd6eb29a2",
-        "type": "http in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "url": "/todo/:id",
-        "method": "put",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 150,
-        "y": 640,
-        "wires": [
-            [
-                "4573d59dc828b4a4"
-            ]
-        ]
-    },
-    {
-        "id": "3d1810b23025d777",
-        "type": "http in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "url": "/todo/:id",
-        "method": "delete",
-        "upload": false,
-        "swaggerDoc": "",
-        "x": 140,
-        "y": 860,
-        "wires": [
-            [
-                "2273a59af2b894b4"
-            ]
-        ]
-    },
-    {
-        "id": "bb92254c99387b56",
-        "type": "file in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "utf8",
-        "allProps": false,
-        "x": 360,
-        "y": 220,
-        "wires": [
-            [
-                "ee5ab95d65787c3f"
-            ]
-        ]
-    },
-    {
-        "id": "ee5ab95d65787c3f",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "obj",
-        "pretty": false,
-        "x": 550,
-        "y": 220,
-        "wires": [
-            [
-                "21241445594db579"
-            ]
-        ]
-    },
-    {
-        "id": "21241445594db579",
-        "type": "http response",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 710,
-        "y": 220,
-        "wires": []
-    },
-    {
-        "id": "9d65eb962da2bc5e",
-        "type": "file in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "utf8",
-        "allProps": false,
-        "x": 360,
-        "y": 420,
-        "wires": [
-            [
-                "f32aa15f15a20cb2"
-            ]
-        ]
-    },
-    {
-        "id": "6ca0b06f31166451",
+        "id": "fea3dbe6acbb0815",
         "type": "function",
         "z": "f6f2187d.f17ca8",
-        "name": "AppendTask",
-        "func": "// Get the existing list of todo items\nvar todoList = msg.payload;\n\n// Get the new todo item from request\nvar newItem = msg.req.body;\n\n// Add the new item to the list\ntodoList.push(newItem);\n\n// Send updated list to payload so we can write\n// the new list to file\nmsg.paylod = todoList;\n\nreturn msg;",
+        "name": "ProcessGraphQL",
+        "func": "const { buildSchema, graphql } = graphqlLib;\n\nconst todoListPath = \"/data/todo.json\";\n\n// Helper function to read list from file\nconst readTodoListFromFile = () => {\n    try {\n        if (fs.existsSync(todoListPath)) {\n            const data = JSON.parse(fs.readFileSync(todoListPath, 'utf8'));\n            return data.tasks || [];\n        } else {\n            return [];\n        }\n    } catch(error) {\n        node.warn(`Error writing to file: ${error.message}`);\n        return [];\n    }\n};\n\n// Helper function to write list to file\nconst writeTodoListToFile = (tasks) => {\n    try{\n        fs.writeFileSync(todoListPath, JSON.stringify({tasks: tasks}, null, 2), 'utf8');\n    } catch(error) {\n        node.warn(`Error writing file: ${error.message}`);\n    }\n};\n\n// Helper function to generate \"unique\" id\n// Caution: if used in a synchronous environment, there is a\n//   possibility for ID collisions.\nconst generateUniqueId = () => `task-${Date.now()}`;\n\n// Helper function to validate task inputs\n// Warning: parent function is responsible for error catching\nconst validateTask = (task) => {\n    // Validate task variable types\n    if (typeof task.title !== 'string' || task.title.trim() === '') {\n        throw new Error('Title is required and must be a non-empty string');\n    }\n    if (task.description !== undefined && typeof task.description !== 'string'){\n        throw new Error('Description must be a string');\n    }\n    if (task.completed !== undefined && typeof task.completed !== 'boolean'){\n        throw new Error('Completed must be a boolean');\n    }\n}\n\n// Create schema for our todo list\nconst schema = buildSchema(`\n    type Task {\n        id: ID!\n        title: String!\n        description: String\n        completed: Boolean!\n    }\n    \n    type Query {\n        getTodoList: [Task]\n    }\n    \n    type Mutation {\n        addTask(title: String!, description: String): Task\n        updateTask(id: ID!, title: String, description: String, completed: Boolean): Task\n        deleteTask(id: ID!): String\n    }\n`);\n\n// Provides resolver functions for our endpoints\nconst resolvers = {\n    // Resolver for getting the todo list\n    getTodoList: () => {\n        return readTodoListFromFile();\n    },\n\n    // Resolver for adding a task\n    addTask: ({title, description}) => {\n        try{\n            // Validate task inputs\n            validateTask({title, description});\n\n            // Get current todo list\n            const todoList = readTodoListFromFile();\n\n            // Build new task from request, giving it a unique id\n            const newTask = { id: generateUniqueId(), title, description, completed: false};\n            todoList.push(newTask); // Add new task to list\n\n            // Write new todo list after adding the task\n            writeTodoListToFile(todoList);\n\n            return newTask;\n        } catch (error) {\n            node.warn(`Error adding task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for updating a task\n    updateTask: ({id, title, description, completed}) => {\n        try{\n            const todoList = readTodoListFromFile();\n            \n            // Find task with matching id\n            const task = todoList.find(t => t.id === id);\n            if (task) {\n                // Validate new task\n                validateTask({id, title, description, completed});\n\n                // Update task\n                if (title !== undefined) task.title = title;\n                if (description !== undefined) task.description = description;\n                if (completed !== undefined) task.completed = completed;\n                \n                writeTodoListToFile(todoList);\n\n                return task;\n            }\n        } catch(error){\n            node.warn(`Error updating task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for deleting a task\n    deleteTask: ({id}) => {\n        try{\n            let todoList = readTodoListFromFile();\n            \n            // Delete task with matching id from list\n            todoList = todoList.filter(task => task.id !== id);\n            writeTodoListToFile(todoList);\n\n            return \"Task deleted\";\n        } catch(error) {\n            node.warn(`Error deleting task: ${error.message}`);\n            return \"Failed to delete task\";\n        }\n    }\n};\n\n// Function to process the given query\nconst processGraphQL = async (query) => {\n    try{\n        const result = await graphql({\n            schema,\n            source: query,\n            rootValue: resolvers\n        });\n        \n        return result;\n    } catch (error) {\n        return { errors: [error.message]};\n    }\n};\n\n// Extract the query from the payload & run it\nconst query = msg.payload.query;\nmsg.payload = await processGraphQL(query);\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
-        "libs": [],
-        "x": 730,
-        "y": 420,
+        "libs": [
+            {
+                "var": "fs",
+                "module": "fs"
+            },
+            {
+                "var": "graphqlLib",
+                "module": "graphql"
+            }
+        ],
+        "x": 470,
+        "y": 180,
         "wires": [
             [
-                "92e6db93a093d6dc"
+                "02177b1aff37c1c7"
             ]
         ]
     },
     {
-        "id": "f32aa15f15a20cb2",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "obj",
-        "pretty": false,
-        "x": 550,
-        "y": 420,
-        "wires": [
-            [
-                "6ca0b06f31166451"
-            ]
-        ]
-    },
-    {
-        "id": "40816e95343e9b9f",
+        "id": "02177b1aff37c1c7",
         "type": "http response",
         "z": "f6f2187d.f17ca8",
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 1250,
-        "y": 420,
-        "wires": []
-    },
-    {
-        "id": "84eb55a5d6fe727e",
-        "type": "file",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "appendNewline": false,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "none",
-        "x": 1080,
-        "y": 420,
-        "wires": [
-            [
-                "40816e95343e9b9f"
-            ]
-        ]
-    },
-    {
-        "id": "4573d59dc828b4a4",
-        "type": "file in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "utf8",
-        "allProps": false,
-        "x": 360,
-        "y": 640,
-        "wires": [
-            [
-                "305c286613ec97de"
-            ]
-        ]
-    },
-    {
-        "id": "305c286613ec97de",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "obj",
-        "pretty": false,
-        "x": 550,
-        "y": 640,
-        "wires": [
-            [
-                "66bcbe279c3400a1"
-            ]
-        ]
-    },
-    {
-        "id": "66bcbe279c3400a1",
-        "type": "function",
-        "z": "f6f2187d.f17ca8",
-        "name": "UpdateTask",
-        "func": "var todoList = msg.payload; // Current todo list\nvar id = parseInt(msg.req.params.id); // id of task to update\nvar updatedTask = msg.req.body; // The updated task from request\n\n// Find index of the item\nvar itemIndex = todoList.findIndex(todo => todo.id === id);\n\nif (itemIndex !== -1) {\n    // If we found a valid index,\n    // Update item\n    todoList[itemIndex] = Object.assign(todoList[itemIndex], updatedTask);\n\n    // Set payload to updated list so we can write to file\n    msg.paylod = todoList;\n    return msg;\n} else {\n    // If item not found, returns 404 error\n    msg.statusCode = 404;\n    msg.payload = { Error: \"To-Do item not found\" };\n    return [null, msg]\n}\n\nreturn msg;",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 730,
-        "y": 640,
-        "wires": [
-            [
-                "4704e0e4074db17d"
-            ],
-            [
-                "797aa0320a782a07"
-            ]
-        ]
-    },
-    {
-        "id": "92e6db93a093d6dc",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "str",
-        "pretty": true,
-        "x": 910,
-        "y": 420,
-        "wires": [
-            [
-                "84eb55a5d6fe727e"
-            ]
-        ]
-    },
-    {
-        "id": "a19af4e907b0caa0",
-        "type": "file",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "appendNewline": false,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "none",
-        "x": 1080,
-        "y": 620,
-        "wires": [
-            [
-                "797aa0320a782a07"
-            ]
-        ]
-    },
-    {
-        "id": "4704e0e4074db17d",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "str",
-        "pretty": true,
-        "x": 910,
-        "y": 620,
-        "wires": [
-            [
-                "a19af4e907b0caa0"
-            ]
-        ]
-    },
-    {
-        "id": "797aa0320a782a07",
-        "type": "http response",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 1250,
-        "y": 640,
-        "wires": []
-    },
-    {
-        "id": "2273a59af2b894b4",
-        "type": "file in",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "format": "utf8",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "utf8",
-        "allProps": false,
-        "x": 360,
-        "y": 860,
-        "wires": [
-            [
-                "295cd16c04549bd6"
-            ]
-        ]
-    },
-    {
-        "id": "295cd16c04549bd6",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "obj",
-        "pretty": false,
-        "x": 550,
-        "y": 860,
-        "wires": [
-            [
-                "55e684bb44d6a8d4"
-            ]
-        ]
-    },
-    {
-        "id": "55e684bb44d6a8d4",
-        "type": "function",
-        "z": "f6f2187d.f17ca8",
-        "name": "DeleteTask",
-        "func": "var todoList = msg.payload // Current task list\nvar id = parseInt(msg.req.params.id); // Id of task to delete\n\n// Find the index of the item to delete\nvar itemIndex = todoList.findIndex(todo => todo.id === id);\n\nif (itemIndex !== -1){\n    // Remove item from the todo list\n    todoList.splice(itemIndex, 1);\n\n    // Set payload to updated list to store in file\n    msg.payload = todoList;\n    return msg;\n} else {\n    // If valid index not found, return 404 error\n    msg.statusCode = 404;\n    msg.payload = { Error: \"To-Do item not found\" };\n    return [null, msg];\n}",
-        "outputs": 2,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 730,
-        "y": 860,
-        "wires": [
-            [
-                "85c432e6ad0f96fa"
-            ],
-            [
-                "067a7fdbd7ec10f0"
-            ]
-        ]
-    },
-    {
-        "id": "85c432e6ad0f96fa",
-        "type": "json",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "property": "payload",
-        "action": "str",
-        "pretty": true,
-        "x": 910,
-        "y": 840,
-        "wires": [
-            [
-                "deaf51d3e7ccf759"
-            ]
-        ]
-    },
-    {
-        "id": "deaf51d3e7ccf759",
-        "type": "file",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "filename": "/data/todo.json",
-        "filenameType": "str",
-        "appendNewline": false,
-        "createDir": false,
-        "overwriteFile": "true",
-        "encoding": "none",
-        "x": 1080,
-        "y": 840,
-        "wires": [
-            [
-                "067a7fdbd7ec10f0"
-            ]
-        ]
-    },
-    {
-        "id": "067a7fdbd7ec10f0",
-        "type": "http response",
-        "z": "f6f2187d.f17ca8",
-        "name": "",
-        "statusCode": "",
-        "headers": {},
-        "x": 1250,
-        "y": 860,
+        "x": 670,
+        "y": 180,
         "wires": []
     }
 ]

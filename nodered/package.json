@@ -3,6 +3,9 @@
     "description": "A Node-RED Project",
     "version": "0.0.1",
     "private": true,
+    "dependencies": {
+        "graphql": "^16.9.0"
+    },
     "scripts": {
         "start": "node $NODE_OPTIONS node_modules/node-red/red.js $FLOWS"
     }
