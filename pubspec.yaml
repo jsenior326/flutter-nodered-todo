@@ -40,6 +40,7 @@ dependencies:
   
   # Add the http package so we can make HTTP requests to Node-RED
   http: ^1.2.2
+  graphql_flutter: ^5.1.2
 
 dev_dependencies:
   flutter_test:
