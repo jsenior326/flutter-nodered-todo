@@ -10,12 +10,14 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: "To-Do List",
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
+    return Center(
+      child: MaterialApp(
+        title: "To-Do List",
+        theme: ThemeData(
+          primarySwatch: Colors.blue,
+        ),
+        home: TodoListScreen(), // Home screen of our app
       ),
-      home: TodoListScreen(), // Home screen of our app
     );
   }
 }
