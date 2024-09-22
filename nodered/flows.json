@@ -2,9 +2,55 @@
     {
         "id": "f6f2187d.f17ca8",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "GraphQLEndpoint",
         "disabled": false,
         "info": ""
+    },
+    {
+        "id": "62a9cef03949174b",
+        "type": "mqtt-broker",
+        "name": "Todo Broker",
+        "broker": "bcbd74333d3e4fd3980f87b2d635459d.s1.eu.hivemq.cloud:8883",
+        "port": "8883",
+        "tls": "f66476ba9ed44714",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": true,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "f66476ba9ed44714",
+        "type": "tls-config",
+        "name": "",
+        "cert": "",
+        "key": "",
+        "ca": "",
+        "certname": "",
+        "keyname": "",
+        "caname": "",
+        "servername": "",
+        "verifyservercert": false,
+        "alpnprotocol": ""
     },
     {
         "id": "b2e342a13df6afd3",
@@ -15,11 +61,12 @@
         "method": "post",
         "upload": false,
         "swaggerDoc": "",
-        "x": 240,
-        "y": 180,
+        "x": 560,
+        "y": 240,
         "wires": [
             [
-                "fea3dbe6acbb0815"
+                "fea3dbe6acbb0815",
+                "0c7eb299f74d0af5"
             ]
         ]
     },
@@ -28,7 +75,7 @@
         "type": "function",
         "z": "f6f2187d.f17ca8",
         "name": "ProcessGraphQL",
-        "func": "const { buildSchema, graphql } = graphqlLib;\n\nconst todoListPath = \"/data/todo.json\";\n\n// Helper function to read list from file\nconst readTodoListFromFile = () => {\n    try {\n        if (fs.existsSync(todoListPath)) {\n            const data = JSON.parse(fs.readFileSync(todoListPath, 'utf8'));\n            return data.tasks || [];\n        } else {\n            return [];\n        }\n    } catch(error) {\n        node.warn(`Error writing to file: ${error.message}`);\n        return [];\n    }\n};\n\n// Helper function to write list to file\nconst writeTodoListToFile = (tasks) => {\n    try{\n        fs.writeFileSync(todoListPath, JSON.stringify({tasks: tasks}, null, 2), 'utf8');\n    } catch(error) {\n        node.warn(`Error writing file: ${error.message}`);\n    }\n};\n\n// Helper function to generate \"unique\" id\n// Caution: if used in a synchronous environment, there is a\n//   possibility for ID collisions.\nconst generateUniqueId = () => `task-${Date.now()}`;\n\n// Helper function to validate task inputs\n// Warning: parent function is responsible for error catching\nconst validateTask = (task) => {\n    // Validate task variable types\n    if (typeof task.title !== 'string' || task.title.trim() === '') {\n        throw new Error('Title is required and must be a non-empty string');\n    }\n    if (task.description !== undefined && typeof task.description !== 'string'){\n        throw new Error('Description must be a string');\n    }\n    if (task.completed !== undefined && typeof task.completed !== 'boolean'){\n        throw new Error('Completed must be a boolean');\n    }\n}\n\n// Create schema for our todo list\nconst schema = buildSchema(`\n    type Task {\n        id: ID!\n        title: String!\n        description: String\n        completed: Boolean!\n    }\n    \n    type Query {\n        getTodoList: [Task]\n    }\n    \n    type Mutation {\n        addTask(title: String!, description: String): Task\n        updateTask(id: ID!, title: String, description: String, completed: Boolean): Task\n        deleteTask(id: ID!): String\n    }\n`);\n\n// Provides resolver functions for our endpoints\nconst resolvers = {\n    // Resolver for getting the todo list\n    getTodoList: () => {\n        return readTodoListFromFile();\n    },\n\n    // Resolver for adding a task\n    addTask: ({title, description}) => {\n        try{\n            // Validate task inputs\n            validateTask({title, description});\n\n            // Get current todo list\n            const todoList = readTodoListFromFile();\n\n            // Build new task from request, giving it a unique id\n            const newTask = { id: generateUniqueId(), title, description, completed: false};\n            todoList.push(newTask); // Add new task to list\n\n            // Write new todo list after adding the task\n            writeTodoListToFile(todoList);\n\n            return newTask;\n        } catch (error) {\n            node.warn(`Error adding task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for updating a task\n    updateTask: ({id, title, description, completed}) => {\n        try{\n            const todoList = readTodoListFromFile();\n            \n            // Find task with matching id\n            const task = todoList.find(t => t.id === id);\n            if (task) {\n                // Validate new task\n                validateTask({id, title, description, completed});\n\n                // Update task\n                if (title !== undefined) task.title = title;\n                if (description !== undefined) task.description = description;\n                if (completed !== undefined) task.completed = completed;\n                \n                writeTodoListToFile(todoList);\n\n                return task;\n            }\n        } catch(error){\n            node.warn(`Error updating task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for deleting a task\n    deleteTask: ({id}) => {\n        try{\n            let todoList = readTodoListFromFile();\n            \n            // Delete task with matching id from list\n            todoList = todoList.filter(task => task.id !== id);\n            writeTodoListToFile(todoList);\n\n            return \"Task deleted\";\n        } catch(error) {\n            node.warn(`Error deleting task: ${error.message}`);\n            return \"Failed to delete task\";\n        }\n    }\n};\n\n// Function to process the given query\nconst processGraphQL = async (query) => {\n    try{\n        const result = await graphql({\n            schema,\n            source: query,\n            rootValue: resolvers\n        });\n        \n        return result;\n    } catch (error) {\n        return { errors: [error.message]};\n    }\n};\n\n// Extract the query from the payload & run it\nconst query = msg.payload.query;\nmsg.payload = await processGraphQL(query);\n\nreturn msg;",
+        "func": "const { buildSchema, graphql } = graphqlLib;\n\nconst todoListPath = \"/data/todo.json\";\n\n// Helper function to read list from file\nconst readTodoListFromFile = () => {\n    try {\n        if (fs.existsSync(todoListPath)) {\n            const data = JSON.parse(fs.readFileSync(todoListPath, 'utf8'));\n            return data.tasks || [];\n        } else {\n            return [];\n        }\n    } catch(error) {\n        node.warn(`Error writing to file: ${error.message}`);\n        return [];\n    }\n};\n\n// Helper function to write list to file\nconst writeTodoListToFile = (tasks) => {\n    try{\n        fs.writeFileSync(todoListPath, JSON.stringify({tasks: tasks}, null, 2), 'utf8');\n    } catch(error) {\n        node.warn(`Error writing file: ${error.message}`);\n    }\n};\n\n// Helper function to generate \"unique\" id\n// Caution: if used in a synchronous environment, there is a\n//   possibility for ID collisions.\nconst generateUniqueId = () => `task-${Date.now()}`;\n\n// Helper function to validate task inputs on add\n// Warning: parent function is responsible for error catching\nconst validateAddTask = (task) => {\n    // Validate task variable types\n    if (typeof task.title !== 'string' || task.title.trim() === '') {\n        throw new Error('Title is required and must be a non-empty string');\n    }\n    if (task.description !== undefined && typeof task.description !== 'string'){\n        throw new Error('Description must be a string');\n    }\n    if (task.completed !== undefined && typeof task.completed !== 'boolean'){\n        throw new Error('Completed must be a boolean');\n    }\n}\n\n// Helper function to validate task inputs on update\n// Warning: parent function is responsible for error catching\nconst validateUpdateTask = (task) => {\n    // Validate task variable types\n    if (task.title !== undefined && (typeof task.title !== 'string' || task.title.trim() === '')) {\n        throw new Error('Title is required and must be a non-empty string');\n    }\n    if (task.description !== undefined && typeof task.description !== 'string'){\n        throw new Error('Description must be a string');\n    }\n    if (task.completed !== undefined && typeof task.completed !== 'boolean'){\n        throw new Error('Completed must be a boolean');\n    }\n}\n\n// Create schema for our todo list\nconst schema = buildSchema(`\n    type Task {\n        id: ID!\n        title: String!\n        description: String\n        completed: Boolean!\n    }\n    \n    type Query {\n        getTodoList: [Task]\n    }\n    \n    type Mutation {\n        addTask(title: String!, description: String): Task\n        updateTask(id: ID!, title: String, description: String, completed: Boolean): Task\n        deleteTask(id: ID!): String\n    }\n`);\n\n// Provides resolver functions for our endpoints\nconst resolvers = {\n    // Resolver for getting the todo list\n    getTodoList: () => {\n        return readTodoListFromFile();\n    },\n\n    // Resolver for adding a task\n    addTask: ({title, description}) => {\n        try{\n            // Validate task inputs\n            validateAddTask({title, description});\n\n            // Get current todo list\n            const todoList = readTodoListFromFile();\n\n            // Build new task from request, giving it a unique id\n            const newTask = { id: generateUniqueId(), title, description, completed: false};\n            todoList.push(newTask); // Add new task to list\n\n            // Write new todo list after adding the task\n            writeTodoListToFile(todoList);\n\n            return newTask;\n        } catch (error) {\n            node.warn(`Error adding task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for updating a task\n    updateTask: ({id, title, description, completed}) => {\n        try{\n            const todoList = readTodoListFromFile();\n            \n            // Find task with matching id\n            const task = todoList.find(t => t.id === id);\n            if (task) {\n                // Validate new task\n                validateUpdateTask({id, title, description, completed});\n\n                // Update task\n                if (title !== undefined) task.title = title;\n                if (description !== undefined) task.description = description;\n                if (completed !== undefined) task.completed = completed;\n                \n                writeTodoListToFile(todoList);\n\n                return task;\n            }\n        } catch(error){\n            node.warn(`Error updating task: ${error.message}`);\n            return null;\n        }\n    },\n\n    // Resolver for deleting a task\n    deleteTask: ({id}) => {\n        try{\n            let todoList = readTodoListFromFile();\n            \n            // Delete task with matching id from list\n            todoList = todoList.filter(task => task.id !== id);\n            writeTodoListToFile(todoList);\n\n            return \"Task deleted\";\n        } catch(error) {\n            node.warn(`Error deleting task: ${error.message}`);\n            return \"Failed to delete task\";\n        }\n    }\n};\n\n// Function to process the given query\nconst processGraphQL = async (query) => {\n    try{\n        const result = await graphql({\n            schema,\n            source: query,\n            rootValue: resolvers\n        });\n        \n        return result;\n    } catch (error) {\n        return { errors: [error.message]};\n    }\n};\n\n// Extract the query from the payload & run it\nconst query = msg.payload.query;\nmsg.payload = await processGraphQL(query);\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -44,8 +91,8 @@
                 "module": "graphql"
             }
         ],
-        "x": 470,
-        "y": 180,
+        "x": 790,
+        "y": 240,
         "wires": [
             [
                 "02177b1aff37c1c7"
@@ -59,8 +106,186 @@
         "name": "",
         "statusCode": "",
         "headers": {},
-        "x": 670,
-        "y": 180,
+        "x": 990,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "0c7eb299f74d0af5",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "HTTP request",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 780,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "efc7199901970413",
+        "type": "mqtt in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "topic": "todo/task/completed/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "62a9cef03949174b",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 240,
+        "y": 340,
+        "wires": [
+            [
+                "2e2ea5d1cfe170d1"
+            ]
+        ]
+    },
+    {
+        "id": "2e2ea5d1cfe170d1",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "BuildMQTTUpdateQuery",
+        "func": "// Extract taskId from topic.\n// Topic format is: todo/task/completed/{taskId}\nlet taskId = msg.topic.split(\"/\")[3];\nlet isCompleted = (msg.payload === \"true\"); // Payload contains boolean\n\n// Construct graphql query\nlet query = `\n    mutation {\n        updateTask(id: \"${taskId}\", completed: ${msg.payload}) {\n            id\n            title\n            description\n            completed\n        }\n    }`;\n\n// Set payload to contain query\nmsg.payload = {\n    query: query\n};\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 530,
+        "y": 340,
+        "wires": [
+            [
+                "6aad04ee46801c31"
+            ]
+        ]
+    },
+    {
+        "id": "6aad04ee46801c31",
+        "type": "http request",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "method": "POST",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "http://127.0.0.1:1880/graphql",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 770,
+        "y": 340,
+        "wires": [
+            [
+                "7f4f7b5b1a10d3a3"
+            ]
+        ]
+    },
+    {
+        "id": "7f4f7b5b1a10d3a3",
+        "type": "debug",
+        "z": "f6f2187d.f17ca8",
+        "name": "MQTT response",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 980,
+        "y": 340,
+        "wires": []
+    },
+    {
+        "id": "5296242f6a79bbc6",
+        "type": "mqtt in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "topic": "todo/sync/request/#",
+        "qos": "2",
+        "datatype": "auto-detect",
+        "broker": "62a9cef03949174b",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 250,
+        "y": 460,
+        "wires": [
+            [
+                "c12fe068f31dc53e"
+            ]
+        ]
+    },
+    {
+        "id": "496d5d67cd159701",
+        "type": "file in",
+        "z": "f6f2187d.f17ca8",
+        "name": "",
+        "filename": "/data/todo.json",
+        "filenameType": "str",
+        "format": "utf8",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 720,
+        "y": 460,
+        "wires": [
+            [
+                "153463e055bc900c"
+            ]
+        ]
+    },
+    {
+        "id": "c12fe068f31dc53e",
+        "type": "function",
+        "z": "f6f2187d.f17ca8",
+        "name": "GetClientId",
+        "func": "// Extract clientId from topic.\n// Topic format is: todo/sync/request/{clientId}\nlet clientId = msg.topic.split(\"/\")[3];\n\nmsg.topic = \"todo/sync/response/\" + clientId;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 490,
+        "y": 460,
+        "wires": [
+            [
+                "496d5d67cd159701"
+            ]
+        ]
+    },
+    {
+        "id": "153463e055bc900c",
+        "type": "mqtt out",
+        "z": "f6f2187d.f17ca8",
+        "name": "Sync Response",
+        "topic": "",
+        "qos": "2",
+        "retain": "true",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "62a9cef03949174b",
+        "x": 980,
+        "y": 460,
         "wires": []
     }
 ]
